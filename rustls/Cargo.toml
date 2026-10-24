@@ -84,6 +84,11 @@ path = "tests/reality.rs"
 required-features = ["std", "aws_lc_rs"]
 
 [[test]]
+name = "reality_ring"
+path = "tests/reality_ring.rs"
+required-features = ["std", "ring"]
+
+[[test]]
 name = "api_ffdhe"
 path = "tests/runners/api_ffdhe.rs"
 required-features = ["tls12"]

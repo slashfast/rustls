@@ -206,13 +206,28 @@ impl MessageEncrypter for Tls13MessageEncrypter {
         msg: OutboundPlainMessage<'_>,
         seq: u64,
     ) -> Result<OutboundOpaqueMessage, Error> {
-        let total_len = self.encrypted_payload_len(msg.payload.len());
+        self.encrypt_with_padding(msg, seq, 0)
+    }
+
+    fn encrypt_with_padding(
+        &mut self,
+        msg: OutboundPlainMessage<'_>,
+        seq: u64,
+        padding: usize,
+    ) -> Result<OutboundOpaqueMessage, Error> {
+        let plain_len = if padding == 0 {
+            msg.payload.len()
+        } else {
+            crate::reality::padded_plaintext_len(msg.payload.len(), padding)?
+        };
+        let total_len = self.encrypted_payload_len(plain_len);
         let mut payload = PrefixedPayload::with_capacity(total_len);
 
         let nonce = aead::Nonce::assume_unique_for_key(Nonce::new(&self.iv, seq).0);
         let aad = aead::Aad::from(make_tls13_aad(total_len));
         payload.extend_from_chunks(&msg.payload);
         payload.extend_from_slice(&msg.typ.to_array());
+        payload.extend(core::iter::repeat(&0).take(padding));
 
         self.enc_key
             .seal_in_place_append_tag(nonce, aad, &mut payload)
